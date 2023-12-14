@@ -22,32 +22,34 @@
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_SESSION['id'])) {
 
-        if ($_POST['name'] != "" AND $_POST['logo'] != ""  AND $_POST['bg2'] != ""  AND $_POST['bg3'] != "" AND $_POST['discord'] != "" AND $_POST['widget_discord'] != "" AND $_POST['facebook'] != "" AND $_POST['main_color'] != "" AND $_POST['sec_color'] != "" AND $_POST['des'] != "") {
+        if (
+        $_POST['id'] != "" AND $_POST['data'] != "" 
+        ) {
             $q_1 = dd_q('SELECT * FROM users WHERE id = ? AND rank = 1 ', [$_SESSION['id']]);
             if ($q_1->rowCount() >= 1) {
-                $des = preg_replace('~\R~u', "\n", $_POST['des']);
-                $insert = dd_q("UPDATE setting SET 
-                    name = ? , main_color  = ? , 
-                    sec_color = ? , widget_discord = ? , discord = ? , facebook = ? , des = ? , logo = ?, ann = ? , webhook_dc = ? , bg2 = ? , bg3 = ?
-                ", [
-                    $_POST['name'],
-                    $_POST['main_color'],
-                    $_POST['sec_color'],
-                    $_POST['widget_discord'],
-                    $_POST['discord'],
-                    $_POST['facebook'],
-                    $des,
-                    $_POST['logo'],
-                    $_POST['ann'],
-                    $_POST['webhook_dc'],
-                    $_POST['bg2'],
-                    $_POST['bg3']
-                ]);
-                if($insert){
-                    dd_return(true, "บันทึกสำเร็จ");
+                $_POST['data'] = preg_replace('~\R~u', "\n", $_POST['data']);
+                $find = dd_q("SELECT * FROM stock_wheel WHERE id = ? ", [$_POST['id']]);
+                if($find){
+                    $data_array = explode("\n" , $_POST['data']);
+                    foreach ($data_array as $key => $value) {
+                        if($value == ""){
+                            continue;
+                        }else{
+                            $insert = dd_q("INSERT INTO stock_wheel (username,p_id) VALUES ( ? , ? ) ", [
+                                $value,
+                                $_POST['id'],
+                            ]);
+                        }
+                    }
+                    if($insert){
+                        dd_return(true, "บันทึกสำเร็จ");
+                    }else{
+                        dd_return(false, "SQL ผิดพลาด");
+                    }
                 }else{
-                    dd_return(false, "SQL ผิดพลาด");
+                    dd_return(false, "ไม่เจอสินค้าดังกล่าว");
                 }
+                
             }else{
                 dd_return(false, "เซสชั่นผิดพลาด โปรดล็อกอินใหม่");
                 session_destroy();

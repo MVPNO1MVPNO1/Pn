@@ -1,62 +1,53 @@
-<div class="container-sm bg-glass mt-5 border-2 shadow-sm p-4 mb-4 rounded" data-aos="fade-down">
-    <center>
-        <h1 class="text-white">&nbsp;<i class="fa-duotone fa-browser"></i>&nbsp;จัดการเติมเงินวอเลท</h1>
-    </center>
-    <hr>
-    <div class="col-lg-6 m-auto">
-        <div class="mb-2 ">
-            <p class="m-0 text-white ">เบอร์รับเงิน (TrueWallet) <span class="text-danger">*</span></p>
-            <input type="text" id="site_wallet" class="form-control" value="<?php echo $config['wallet']; ?>">
-        </div>
-        <div class="mb-2">
-            <p class="m-0 text-white ">เก็บ 2.3% ไม่เกิน 10 บาท<span class="text-danger">*</span></p>
-            <select class="form-control"  id="pc">
-                <option value="on" <?php if ($config['fee'] == "on") {echo "selected";} ?>>เปิดใช้งาน / on</option>
-                <option value="off" <?php if ($config['fee'] == "off") {echo "selected";} ?>>ปิดใช้งาน / off</option>
-            </select>
-        </div>
-        <div class="mb-2">
-            <button class="btn text-white bg-main w-100" id="btn_regis">บันทึกข้อมูล</button>
-        </div>
-    </div>
-</div>
+<?php
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
 
-<script type="text/javascript">
-    $("#btn_regis").click(function(e) {
-        e.preventDefault();
-        var formData = new FormData();
-        formData.append('wallet', $("#site_wallet").val());
-        formData.append('fee', $("#pc").val());
-        $('#btn_regis').attr('disabled', 'disabled');
-        $.ajax({
-            type: 'POST',
-            url: 'system/backend/angpao_manage.php',
-            data: formData,
-            contentType: false,
-            processData: false,
-        }).done(function(res) {
-            result = res;
-            console.log(result);
-            Swal.fire({
-                icon: 'success',
-                title: 'สำเร็จ',
-                text: result.message
-            }).then(function() {
-                window.location = "?page=<?php echo $_GET['page']; ?>";
-            });
-        }).fail(function(jqXHR) {
-            console.log(jqXHR);
-            res = jqXHR.responseJSON;
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: res.message
-            })
-            //console.clear();
-            $('#btn_regis').removeAttr('disabled');
-        });
-    });
-    $(document).ready(function () {
-        $('#table').DataTable();
-    });
-</script>
+    require_once '../a_func.php';
+
+    function dd_return($status, $message) {
+        $json = ['message' => $message];
+        if ($status) {
+            http_response_code(200);
+            die(json_encode($json));
+        }else{
+            http_response_code(400);
+            die(json_encode($json));
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+
+    header('Content-Type: application/json; charset=utf-8;');
+
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_SESSION['id'])) {
+
+        if ($_POST['wallet'] != "") {
+            $q_1 = dd_q('SELECT * FROM users WHERE id = ? AND rank = 1 ', [$_SESSION['id']]);
+            if ($q_1->rowCount() >= 1) {
+                $des = preg_replace('~\R~u', "\n", $_POST['des']);
+                $insert = dd_q("UPDATE setting SET 
+                    wallet = ? , fee = ?
+                ", [
+                    $_POST['wallet'],
+                    $_POST['fee'],
+                ]);
+                if($insert){
+                    dd_return(true, "บันทึกสำเร็จ");
+                }else{
+                    dd_return(false, "SQL ผิดพลาด");
+                }
+            }else{
+                dd_return(false, "เซสชั่นผิดพลาด โปรดล็อกอินใหม่");
+                session_destroy();
+            }
+        }else{
+            dd_return(false, "กรุณากรอกข้อมูลให้ครบ");
+        }
+        }else{
+        dd_return(false, "เข้าสู่ระบบก่อน");
+        }
+    }else{
+        dd_return(false, "Method '{$_SERVER['REQUEST_METHOD']}' not allowed!");
+    }
+?>
